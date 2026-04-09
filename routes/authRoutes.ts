@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, getMe, updateMe } from '../controllers/authController';
+import { register, login, getMe, updateMe, updatePushToken } from '../controllers/authController';
 import { authMiddleware } from '../middleware/auth';
 import multer from 'multer';
 
@@ -10,5 +10,6 @@ router.post('/register', register);
 router.post('/login', login);
 router.get('/me', authMiddleware, getMe);
 router.put('/me', authMiddleware, upload.single('avatar'), updateMe);
+router.put('/push-token', authMiddleware, updatePushToken);
 
 export default router;

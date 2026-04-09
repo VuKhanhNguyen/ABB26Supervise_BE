@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import User from '../models/User';
 import MaintenanceRule from '../models/MaintenanceRule';
 import MaintenanceLog from '../models/MaintenanceLog';
+import * as alertService from '../services/alertService';
+
 
 const DEFAULT_RULES = [
   { name: 'Dầu nhớt máy', interval_km: 1500, category: 'ENGINE OIL' },
@@ -100,7 +102,6 @@ export const getDashboardData = async (req: Request, res: Response): Promise<voi
 };
 
 export const updateOdo = async (req: Request, res: Response): Promise<void> => {
-// ... existing updateOdo function ...
   try {
     const userId = req.user?.id;
     const { odo } = req.body;
@@ -116,6 +117,9 @@ export const updateOdo = async (req: Request, res: Response): Promise<void> => {
     }
 
     await User.findByIdAndUpdate(userId, { current_odo: Number(odo) });
+
+    // Trigger immediate maintenance check and notification
+    await alertService.checkMaintenanceAndNotify(userId);
 
     res.json({ message: 'ODO updated successfully', currentOdo: Number(odo) });
   } catch (error: any) {

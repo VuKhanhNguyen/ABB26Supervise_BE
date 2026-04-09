@@ -5,7 +5,8 @@ import dotenv from 'dotenv';
 import dashboardRoutes from './routes/dashboardRoutes';
 import maintenanceRoutes from './routes/maintenanceRoutes';
 import authRoutes from './routes/authRoutes';
-// import { start as startOdoUpdater } from './cron/odoUpdater'; // disable temporarily until converted to TS
+import alertRoutes from './routes/alertRoutes';
+import { start as startOdoUpdater } from './cron/odoUpdater';
 
 dotenv.config();
 
@@ -18,7 +19,7 @@ const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/ab26supervi
 mongoose.connect(mongoUri)
   .then(() => {
     console.log('Connected to MongoDB');
-    // startOdoUpdater();
+    startOdoUpdater();
   })
   .catch((err: Error) => {
     console.error('MongoDB connection error:', err);
@@ -28,6 +29,7 @@ mongoose.connect(mongoUri)
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/alerts', alertRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

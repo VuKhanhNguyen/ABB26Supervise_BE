@@ -108,6 +108,8 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+import * as alertService from "../services/alertService";
+
 export const updateMe = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, current_odo, daily_avg_km } = req.body;
@@ -133,6 +135,9 @@ export const updateMe = async (req: Request, res: Response): Promise<void> => {
 
     await user.save();
 
+    // Trigger immediate maintenance check and notification
+    await alertService.checkMaintenanceAndNotify(user._id.toString());
+
     res.json({
       message: "Profile updated successfully",
       user: {
@@ -149,3 +154,24 @@ export const updateMe = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+export const updatePushToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { pushToken } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+    
+    user.pushToken = pushToken;
+    await user.save();
+    
+    res.json({ message: "Push token updated successfully" });
+  } catch (error) {
+    console.error("Update push token error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
