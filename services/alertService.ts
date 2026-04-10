@@ -61,37 +61,30 @@ export const checkMaintenanceAndNotify = async (userId: string | mongoose.Types.
       }
       
       if (category !== 'Healthy') {
-        // Check if a similar unread alert already exists to avoid flooding
-        const existingAlert = await Alert.findOne({ 
-          userId: user._id, 
-          title: alertTitle,
-          hasRead: false 
-        });
+        // Upsert logic: Update existing unread alert with same title or create new one
+        await Alert.findOneAndUpdate(
+          { userId: user._id, title: alertTitle, hasRead: false },
+          { 
+            description: alertDesc, 
+            tag, 
+            category, 
+            icon, 
+            variant,
+            createdAt: new Date() // Push to top of list
+          },
+          { upsert: true, new: true }
+        );
 
-        if (!existingAlert) {
-          // Save to database
-          const newAlert = new Alert({
-            userId: user._id,
+        // Always queue push notification for latest status
+        if (user.pushToken && Expo.isExpoPushToken(user.pushToken)) {
+          pushedMessages.push({
+            to: user.pushToken,
+            sound: 'default',
             title: alertTitle,
-            description: alertDesc,
-            tag,
-            category,
-            icon,
-            variant
+            body: alertDesc,
+            data: { route: '/alerts' },
+            priority: 'high'
           });
-          await newAlert.save();
-
-          // Push notification logic
-          if (user.pushToken && Expo.isExpoPushToken(user.pushToken)) {
-            pushedMessages.push({
-              to: user.pushToken,
-              sound: 'default',
-              title: alertTitle,
-              body: alertDesc,
-              data: { route: '/alerts' },
-              priority: 'high'
-            });
-          }
         }
       }
     }

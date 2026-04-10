@@ -8,6 +8,8 @@ export interface IUser extends Document {
   daily_avg_km: number;
   avatar_url?: string;
   pushToken?: string;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,6 +22,8 @@ const userSchema = new Schema<IUser>({
   daily_avg_km: { type: Number, default: 15 },
   avatar_url: { type: String },
   pushToken: { type: String },
+  resetPasswordToken: { type: String },
+  resetPasswordExpires: { type: Date },
 }, { timestamps: true });
 
 export default mongoose.model<IUser>('User', userSchema);

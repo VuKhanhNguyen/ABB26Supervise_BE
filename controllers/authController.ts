@@ -109,6 +109,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
 };
 
 import * as alertService from "../services/alertService";
+import { sendResetPinEmail } from "../services/emailService";
 
 export const updateMe = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -171,6 +172,75 @@ export const updatePushToken = async (req: Request, res: Response): Promise<void
     res.json({ message: "Push token updated successfully" });
   } catch (error) {
     console.error("Update push token error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    // Generate 6-digit PIN
+    const pin = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Hash PIN
+    const salt = await bcrypt.genSalt(10);
+    const hashedPin = await bcrypt.hash(pin, salt);
+
+    user.resetPasswordToken = hashedPin;
+    user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
+    await user.save();
+
+    // Log PIN to console (mocking email/SMS delivery)
+    console.log(`[AUTH] Reset PIN for ${email}: ${pin}`);
+
+    // Send actual email
+    await sendResetPinEmail(email, pin);
+
+    res.json({ message: "Authorization code has been transmitted to your email" });
+  } catch (error: any) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({ message: error.message || "Server error" });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, pin, newPassword } = req.body;
+    const user = await User.findOne({ 
+      email,
+      resetPasswordExpires: { $gt: new Date() }
+    });
+
+    if (!user || !user.resetPasswordToken) {
+      res.status(400).json({ message: "Invalid or expired PIN" });
+      return;
+    }
+
+    // Check PIN
+    const isMatch = await bcrypt.compare(pin, user.resetPasswordToken);
+    if (!isMatch) {
+      res.status(400).json({ message: "Invalid PIN" });
+      return;
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Reset password error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
