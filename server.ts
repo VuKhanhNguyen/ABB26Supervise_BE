@@ -25,6 +25,11 @@ mongoose.connect(mongoUri)
     console.error('MongoDB connection error:', err);
   });
 
+// Health check route
+app.get('/api', (req, res) => {
+  res.json({ message: "AB26 Supervise API is running..." });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
